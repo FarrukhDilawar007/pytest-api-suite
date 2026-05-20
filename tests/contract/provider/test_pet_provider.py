@@ -12,10 +12,15 @@ import time
 import pytest
 
 try:
-    from pact import Verifier
+    from pact.v3 import Verifier
     _PACT_AVAILABLE = True
-except (ImportError, OSError):
-    _PACT_AVAILABLE = False
+except (ImportError, OSError, Exception):
+    try:
+        from pact import Verifier as _V1Verifier  # noqa: F401
+        _PACT_AVAILABLE = True
+        Verifier = _V1Verifier
+    except (ImportError, OSError):
+        _PACT_AVAILABLE = False
 
 from tests.contract.provider.mock_provider import app
 
@@ -42,9 +47,10 @@ def provider_server():
 
 @pytest.mark.contract
 def test_provider_satisfies_consumer_pact(provider_server):
-    verifier = Verifier(  # noqa: F821 — guarded by pytestmark skipif above
-        provider="PetProvider",
-        provider_base_url=f"http://{PROVIDER_HOST}:{PROVIDER_PORT}",
-    )
-    output, _ = verifier.verify_pacts(PACT_FILE)
-    assert output == 0, "Pact provider verification failed — consumer contract not satisfied"
+    provider_url = f"http://{PROVIDER_HOST}:{PROVIDER_PORT}"
+
+    # pact-python v2 uses pact.v3.Verifier with a different API
+    verifier = Verifier("PetProvider", provider_url)  # noqa: F821
+    verifier.add_source(PACT_FILE)
+    results = verifier.verify()
+    assert results, "Pact provider verification failed — consumer contract not satisfied"
