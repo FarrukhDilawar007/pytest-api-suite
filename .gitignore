@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.allure/
+allure-results/
+reports/
+logs/
+pacts/
+*.html
+.env
+.claude/settings.local.json
