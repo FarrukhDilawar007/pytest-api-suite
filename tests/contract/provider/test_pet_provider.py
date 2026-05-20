@@ -31,7 +31,7 @@ pytestmark = pytest.mark.skipif(
 
 PROVIDER_HOST = "localhost"
 PROVIDER_PORT = 5050
-PACT_FILE = "pacts/petconsumer-petprovider.json"
+PACT_DIR = "pacts"
 
 
 @pytest.fixture(scope="module")
@@ -51,6 +51,6 @@ def test_provider_satisfies_consumer_pact(provider_server):
 
     # pact-python v2 uses pact.v3.Verifier with a different API
     verifier = Verifier("PetProvider", provider_url)  # noqa: F821
-    verifier.add_source(PACT_FILE)
+    verifier.add_source(PACT_DIR)
     results = verifier.verify()
     assert results, "Pact provider verification failed — consumer contract not satisfied"
