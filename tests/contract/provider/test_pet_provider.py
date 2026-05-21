@@ -4,34 +4,30 @@ Pact provider verification test.
 Spins up the Flask mock provider, then verifies it satisfies
 every interaction defined in the consumer pact file.
 
-Note: requires pact-python FFI (pact_ffi). On Windows with Python 3.13 the
-DLL may fail to load — tests are skipped in that case and run in Linux CI.
+Note: pact-python <2.0 uses the pact-standalone Ruby binary (auto-downloaded).
+On Windows/Python 3.13 the binary may not initialise — tests are skipped locally
+and run in Linux CI where the binary works correctly.
 """
 import threading
 import time
 import pytest
 
 try:
-    from pact.v3 import Verifier
+    from pact import Verifier
     _PACT_AVAILABLE = True
 except (ImportError, OSError, Exception):
-    try:
-        from pact import Verifier as _V1Verifier  # noqa: F401
-        _PACT_AVAILABLE = True
-        Verifier = _V1Verifier
-    except (ImportError, OSError):
-        _PACT_AVAILABLE = False
+    _PACT_AVAILABLE = False
 
 from tests.contract.provider.mock_provider import app
 
 pytestmark = pytest.mark.skipif(
     not _PACT_AVAILABLE,
-    reason="pact-python FFI not available on this platform — runs in CI (Linux)",
+    reason="pact-python not available on this platform — runs in CI (Linux)",
 )
 
 PROVIDER_HOST = "localhost"
 PROVIDER_PORT = 5050
-PACT_DIR = "pacts"
+PACT_FILE = "pacts/petconsumer-petprovider.json"
 
 
 @pytest.fixture(scope="module")
@@ -47,10 +43,9 @@ def provider_server():
 
 @pytest.mark.contract
 def test_provider_satisfies_consumer_pact(provider_server):
-    provider_url = f"http://{PROVIDER_HOST}:{PROVIDER_PORT}"
-
-    # pact-python v2 uses pact.v3.Verifier with a different API
-    verifier = Verifier("PetProvider", provider_url)  # noqa: F821
-    verifier.add_source(PACT_DIR)
-    results = verifier.verify()
-    assert results, "Pact provider verification failed — consumer contract not satisfied"
+    verifier = Verifier(  # noqa: F821
+        provider="PetProvider",
+        provider_base_url=f"http://{PROVIDER_HOST}:{PROVIDER_PORT}",
+    )
+    output, _ = verifier.verify_pacts(PACT_FILE)
+    assert output == 0, "Pact provider verification failed — consumer contract not satisfied"
