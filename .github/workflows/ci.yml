@@ -80,7 +80,10 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run consumer contract tests (generates pact file)
-        run: pytest -m contract tests/contract/consumer/ -v
+        run: mkdir -p pacts logs && pytest -m contract tests/contract/consumer/ -v
+
+      - name: List generated pact files
+        run: find . -name "*.json" -path "*/pacts/*" 2>/dev/null || echo "No pact files found — listing pacts/"; ls -la pacts/ 2>/dev/null || echo "pacts/ does not exist"
 
       - name: Run provider verification
         run: pytest -m contract tests/contract/provider/ -v
